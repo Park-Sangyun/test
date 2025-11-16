@@ -25,18 +25,21 @@ Node* getNodeAVL(int newkey) {
     return newNode;
 }
 
+// height
 int Height(Node* p) {
     if (p == nullptr)
         return 0;
     return p->height;
 }
 
+// size
 int Size(Node* p) {
     if (p == nullptr)
         return 0;
     return p->size;
 }
 
+// minNode
 Node* minNode(Node* p, stack<Node*>& stack) {
     while (p->left != nullptr) {
         stack.push(p);
@@ -45,6 +48,7 @@ Node* minNode(Node* p, stack<Node*>& stack) {
     return p;
 }
 
+// maxNode
 Node* maxNode(Node* p, stack<Node*>& stack) {
     while (p->right != nullptr) {
         stack.push(p);
@@ -118,8 +122,9 @@ int insertAVL(Node*& T, int newKey) {
     Node* q = nullptr; //부모노드 임시저장 
     stack<Node*> stack; //부모노드 계속 저장
 
-    while (p != nullptr) { //searchNode()
-        //이미 같은 키의 노드가 존재
+    // searchNode()
+    while (p != nullptr) {
+        // 이미 같은 키의 노드가 존재하는 경우
         if (newKey == p->key) {
             cerr << "i " << newKey << ": The key already exists\n";
             return 0;
@@ -135,12 +140,11 @@ int insertAVL(Node*& T, int newKey) {
             p = p->right;
         }
     }
-    //새로운 노드 생성
-
+    
+    // 새로운 노드 생성
     Node* newNode = getNodeAVL(newKey);
-    //insertBst()
-    //루트노드가 비었을때
 
+    // 루트노드가 비었을 경우
     if (T == nullptr)
         T = newNode;
 
@@ -150,7 +154,8 @@ int insertAVL(Node*& T, int newKey) {
         q->right = newNode;
     Node* x = nullptr;
     Node* f = nullptr;
-    //Height(), bf로 밸런스 체크
+
+    // 밸런스 체크 및 업데이트
     while (!stack.empty()) {
         q = stack.top();
         stack.pop();
@@ -185,12 +190,13 @@ int insertAVL(Node*& T, int newKey) {
     return 1;
 }
 
-int deleteAVL(Node*& T, int deleteKey) {
+int eraseAVL(Node*& T, int deleteKey) {
     Node* p = T;
     Node* q = nullptr;
     stack<Node*> stack;
 
-    while (p != nullptr and deleteKey != p->key) { //searchNode
+    // searchNode
+    while (p != nullptr and deleteKey != p->key) {
         q = p;
         stack.push(q);
 
@@ -199,29 +205,30 @@ int deleteAVL(Node*& T, int deleteKey) {
         else
             p = p->right;
     }
-    //삭제할 노드가 없음
+
+    // 삭제할 노드가 없는 경우
     if (p == nullptr) {
         cerr << "d " << deleteKey << ": The key does not exist\n";
         return 0;
     }
     //타겟노드 양옆 확인
-    if (p->left != nullptr and p->right != nullptr) {// 2개
+    if (p->left != nullptr and p->right != nullptr) { // 차수가 2
         stack.push(p);
         Node* tempNode = p;
-        //minNode(), maxNode()
+
         if (p->left->height < p->right->height or (p->left->height == p->right->height and Size(p->left) < Size(p->right)))
         {
-            p = minNode(p->right, stack);
+            p = minNode(p->right, stack); // p->right 서브트리에서 minNode를 찾기
         }
         else {
-            p = maxNode(p->left, stack);
+            p = maxNode(p->left, stack); // p->left 서브트리에서 maxNode를 찾기
         }
 
         tempNode->key = p->key;
         q = stack.top();
     }
 
-    if (p->left == nullptr and p->right == nullptr) {  // 0개
+    if (p->left == nullptr and p->right == nullptr) {  // 차수가 0
         if (q == nullptr)
             T = nullptr;
         else if (q->left == p)
@@ -229,7 +236,7 @@ int deleteAVL(Node*& T, int deleteKey) {
         else
             q->right = nullptr;
     }
-    else { // 1개
+    else { // 차수가 1
         if (p->left != nullptr) {
             if (q == nullptr)
                 T = T->left;
@@ -250,7 +257,7 @@ int deleteAVL(Node*& T, int deleteKey) {
     //메모리 누수 방지
     delete p;
 
-    // Height()
+    // 밸런스 체크 및 업데이트
     Node* x = nullptr;
     Node* f = nullptr;
     while (!stack.empty()) {
@@ -291,11 +298,11 @@ void InOrder(Node* T) {
         cout << "";
         return;
     }
-    cout << "<"; // 시작
+    cout << "<";
     // 왼쪽
     if (T->left != nullptr)
         InOrder(T->left);
-    // 현재 노드 출력
+    // 현재 노드
     cout << " " << T->key << " ";
     // 오른쪽
     if (T->right != nullptr)
@@ -311,7 +318,7 @@ void Clear(Node* T) {
     delete T;
 }
 
-//테스트
+//main 함수
 int main() {
     char com;
     int key;
@@ -324,7 +331,7 @@ int main() {
             }
         }
         else if (com == 'd') {
-            if (deleteAVL(T, key)) {
+            if (eraseAVL(T, key)) {
                 InOrder(T);
                 cout << "\n";
             }
