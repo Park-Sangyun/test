@@ -7,7 +7,8 @@ using namespace std;
 
 struct Node {
 public:
-    Node* left, * right;
+    Node* left;
+    Node* right;
     int key;
     int height;
     int size;
