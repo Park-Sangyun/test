@@ -2,67 +2,104 @@
 #include <fstream>
 #include <stack>
 
+
 using namespace std;
 
 struct Node {
 public:
-    Node* left, * right;
+    Node* left;
+    Node* right;
     int key;
     int height;
     int size;
+    int bf;
 };
 
-Node* getNodeBST(int newkey) {
+Node* getNodeAVL(int newkey) {
     Node* newNode = new Node();
     newNode->key = newkey;
     newNode->left = nullptr;
     newNode->right = nullptr;
     newNode->height = 1;
     newNode->size = 1;
+    newNode->bf = 0;
     return newNode;
 }
 
-// height
-int height(Node* p) {
-    if (p == nullptr)
+int Size(Node* p) {
+    if (p == nullptr) {
         return 0;
-    return p->height;
-}
-
-// size
-int size(Node* p) {
-    if (p == nullptr)
-        return 0;
+    }
+    p->size = 1 + Size(p->left) + Size(p->right);
     return p->size;
 }
 
-// minNode
-Node* minNode(Node* p, stack<Node*>& stack) {
-    while (p->left != nullptr) {
-        stack.push(p);
-        p = p->left;
-    }
-    return p;
+int Height(Node* p) {
+    return (p != nullptr) ? p->height : 0;
 }
 
-// maxNode
-Node* maxNode(Node* p, stack<Node*>& stack) {
-    while (p->right != nullptr) {
-        stack.push(p);
-        p = p->right;
+Node* rotateTree(string com, Node* x) {
+    if (com == "LL") {
+        Node* y = x->left;
+        x->left = y->right;
+        y->right = x;
+
+        x->height = 1 + max(Height(x->left), Height(x->right));
+        x->bf = Height(x->left) - Height(x->right);
+
+        y->height = 1 + max(Height(y->left), Height(y->right));
+        y->bf = Height(y->left) - Height(y->right);
+        return y;
     }
-    return p;
+    else if (com == "RR") {
+        Node* y = x->right;
+        x->right = y->left;
+        y->left = x;
+
+        x->height = 1 + max(Height(x->left), Height(x->right));
+        x->bf = Height(x->left) - Height(x->right);
+
+        y->height = 1 + max(Height(y->left), Height(y->right));
+        y->bf = Height(y->left) - Height(y->right);
+        return y;
+    }
+    else if (com == "LR") {
+        x->left = rotateTree("RR", x->left);
+        return rotateTree("LL", x);
+    }
+    else if (com == "RL") {   // RL
+        x->right = rotateTree("LL", x->right);
+        return rotateTree("RR", x);
+    }
 }
 
+Node* checkBalance(Node* x) {
+    if (1 < x->bf) {
+        if (x->left->bf > 0) {
+            return rotateTree("LL", x);
+        }
+        else {
+            return rotateTree("LR", x);
+        }
+    }
+    else {
+        if (x->right->bf < 0) {
+            return rotateTree("RR", x);
+        }
+        else {
+            return rotateTree("RL", x);
+        }
+    }
+    return x;
+}
 
-int insertBST(Node*& T, int newKey) {
-    Node* p = T; // 루트노드를 받아옴
-    Node* q = nullptr; // 부모노드를 임시저장 
-    stack<Node*> stack; // 부모노드를 계속 저장
+int insertAVL(Node*& T, int newKey) {
+    Node* p = T; //루트노드 받아옴
+    Node* q = nullptr; //부모노드 임시저장 
+    stack<Node*> stack; //부모노드 계속 저장
 
-    // searchNode()
-    while (p != nullptr) {
-        // 이미 같은 키의 노드가 존재하는 경우
+    while (p != nullptr) { //searchNode()
+        //이미 같은 키의 노드가 존재
         if (newKey == p->key) {
             cerr << "i " << newKey << ": The key already exists\n";
             return 0;
@@ -78,11 +115,12 @@ int insertBST(Node*& T, int newKey) {
             p = p->right;
         }
     }
+    //새로운 노드 생성
 
-    // 새로운 노드 생성
-    Node* newNode = getNodeBST(newKey);
+    Node* newNode = getNodeAVL(newKey);
+    //insertBst()
+    //루트노드가 비었을때
 
-    // 루트노드가 비었을 경우
     if (T == nullptr)
         T = newNode;
 
@@ -90,28 +128,48 @@ int insertBST(Node*& T, int newKey) {
         q->left = newNode;
     else
         q->right = newNode;
-
-    // Height, Size update
+    Node* x = nullptr;
+    Node* f = nullptr;
+    //Height(), bf로 밸런스 체크
     while (!stack.empty()) {
         q = stack.top();
         stack.pop();
-        
-        int leftHeight = height(q->left);
-        int rightHeight = height(q->right);
-        q->height = 1 + max(leftHeight, rightHeight);
 
-        q->size = 1 + size(q->left) + size(q->right);
+        int leftHeight = (q->left == nullptr) ? 0 : q->left->height;
+        int rightHeight = (q->right == nullptr) ? 0 : q->right->height;
+        q->height = 1 + max(leftHeight, rightHeight);
+        q->bf = leftHeight - rightHeight;
+
+        if (q->bf > 1 or q->bf < -1) {
+            x = q;
+            if (!stack.empty()) {
+                f = stack.top();
+            }
+            break;
+        }
     }
-    return true;
+    if (x == nullptr) {
+        return 1;
+    }
+    if (f == nullptr) {
+        T = checkBalance(x);
+    }
+    else if (f->left == x) {
+        f->left = checkBalance(x);
+    }
+    else if (f->right == x) {
+        f->right = checkBalance(x);
+    }
+
+    return 1;
 }
 
-int eraseBST(Node*& T, int deleteKey) {
+int deleteAVL(Node*& T, int deleteKey) {
     Node* p = T;
     Node* q = nullptr;
     stack<Node*> stack;
 
-    // searchNode
-    while (p != nullptr and deleteKey != p->key) {
+    while (p != nullptr and deleteKey != p->key) { //searchNode
         q = p;
         stack.push(q);
 
@@ -120,31 +178,37 @@ int eraseBST(Node*& T, int deleteKey) {
         else
             p = p->right;
     }
-
-    // 삭제할 노드가 없는 경우
+    //삭제할 노드가 없음
     if (p == nullptr) {
         cerr << "d " << deleteKey << ": The key does not exist\n";
         return 0;
     }
-    // 타겟노드의 양옆 확인
-    if (p->left != nullptr and p->right != nullptr) { // 차수가 2
+    //타겟노드 양옆 확인
+    if (p->left != nullptr and p->right != nullptr) {// 2개
         stack.push(p);
         Node* tempNode = p;
-        
-
-        if (height(p->left) < height(p->right) or (height(p->left) == height(p->right) and size(p->left) < size(p->right)))
+        //minNode(), maxNode()
+        if (p->left->height < p->right->height or (p->left->height == p->right->height and Size(p->left) < Size(p->right)))
         {
-            p = minNode(p->right, stack); // p->right 서브트리에서 minNode를 찾기
+            p = p->right;
+            while (p->left != nullptr) {
+                stack.push(p);
+                p = p->left;
+            }
         }
         else {
-            p = maxNode(p->left, stack); // p->left 서브트리에서 maxNode를 찾기
+            p = p->left;
+            while (p->right != nullptr) {
+                stack.push(p);
+                p = p->right;
+            }
         }
 
         tempNode->key = p->key;
         q = stack.top();
     }
 
-    if (p->left == nullptr and p->right == nullptr) {  // 차수가 0
+    if (p->left == nullptr and p->right == nullptr) {  // 0개
         if (q == nullptr)
             T = nullptr;
         else if (q->left == p)
@@ -152,7 +216,7 @@ int eraseBST(Node*& T, int deleteKey) {
         else
             q->right = nullptr;
     }
-    else { // 차수가 1
+    else { // 1개
         if (p->left != nullptr) {
             if (q == nullptr)
                 T = T->left;
@@ -173,69 +237,85 @@ int eraseBST(Node*& T, int deleteKey) {
     //메모리 누수 방지
     delete p;
 
-    // Height, Size update
+    // Height()
+    Node* x = nullptr;
+    Node* f = nullptr;
     while (!stack.empty()) {
         q = stack.top();
         stack.pop();
+        int leftHeight = (q->left == nullptr) ? 0 : q->left->height;
+        int rightHeight = (q->right == nullptr) ? 0 : q->right->height;
 
-        int leftHeight = height(q->left);
-        int rightHeight = height(q->right);
         q->height = 1 + max(leftHeight, rightHeight);
+        q->bf = leftHeight - rightHeight;
 
-        q->size = 1 + size(q->left) + size(q->right);
+        if (q->bf > 1 or q->bf < -1) {
+            x = checkBalance(q);
+            if (!stack.empty()) {
+                f = stack.top();
+            }
+            if (q == T) {
+                T = x;
+            }
+            else if (q == f->left) {
+                f->left = x;
+            }
+            else {
+                f->right = x;
+            }
+        }
     }
-    return true;
+
+    return 1;
 }
 
 
 // 순회 출력
-void inorder(Node* T) {
-    // 빈 트리
+void InOrder(Node* T) {
+    // 빈트리
     if (T == nullptr) {
         cout << "";
         return;
     }
-    cout << "<";
+    cout << "<"; // 시작
     // 왼쪽
     if (T->left != nullptr)
-        inorder(T->left);
-    // 현재 노드
+        InOrder(T->left);
+    // 현재 노드 출력
     cout << " " << T->key << " ";
     // 오른쪽
     if (T->right != nullptr)
-        inorder(T->right);
-    cout << ">";
+        InOrder(T->right);
+    cout << ">"; // 끝
 }
 
-void clear(Node* T) {
+void Clear(Node* T) {
     if (T == nullptr)
         return;
-    clear(T->left);
-    clear(T->right);
-
+    Clear(T->left);
+    Clear(T->right);
     delete T;
-
 }
 
-//main 함수
+//테스트
 int main() {
     char com;
     int key;
     Node* T = nullptr;
     while (cin >> com >> key) {
         if (com == 'i') {
-            if (insertBST(T, key)) {
-                inorder(T);
+            if (insertAVL(T, key)) {
+                InOrder(T);
                 cout << "\n";
             }
         }
         else if (com == 'd') {
-            if (eraseBST(T, key)) {
-                inorder(T);
+            if (deleteAVL(T, key)) {
+                InOrder(T);
                 cout << "\n";
             }
         }
     }
-    clear(T);
-    return (0);
+    Clear(T);
+    return 0;
 }
