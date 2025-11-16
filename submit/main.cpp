@@ -171,6 +171,7 @@ int insertAVL(Node*& T, int newKey) {
             if (!stack.empty()) {
                 f = stack.top();
             }
+            break;
         }
     }
     if (x == nullptr) {
