@@ -60,9 +60,11 @@ Node* rotateTree(string com, Node* x) {
         y->right = x;
 
         x->height = 1 + max(Height(x->left), Height(x->right));
+        x->size = 1 + Size(x->left) + Size(x->right);
         x->bf = Height(x->left) - Height(x->right);
 
         y->height = 1 + max(Height(y->left), Height(y->right));
+        y->size = 1 + Size(y->left) + Size(y->right);
         y->bf = Height(y->left) - Height(y->right);
         return y;
     }
@@ -72,9 +74,11 @@ Node* rotateTree(string com, Node* x) {
         y->left = x;
 
         x->height = 1 + max(Height(x->left), Height(x->right));
+        x->size = 1 + Size(x->left) + Size(x->right);
         x->bf = Height(x->left) - Height(x->right);
 
         y->height = 1 + max(Height(y->left), Height(y->right));
+        y->size = 1 + Size(y->left) + Size(y->right);
         y->bf = Height(y->left) - Height(y->right);
         return y;
     }
