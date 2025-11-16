@@ -7,8 +7,7 @@ using namespace std;
 
 struct Node {
 public:
-    Node* left;
-    Node* right;
+    Node* left, * right;
     int key;
     int height;
     int size;
@@ -26,16 +25,32 @@ Node* getNodeAVL(int newkey) {
     return newNode;
 }
 
-int Size(Node* p) {
-    if (p == nullptr) {
+int Height(Node* p) {
+    if (p == nullptr)
         return 0;
-    }
-    p->size = 1 + Size(p->left) + Size(p->right);
+    return p->height;
+}
+
+int Size(Node* p) {
+    if (p == nullptr)
+        return 0;
     return p->size;
 }
 
-int Height(Node* p) {
-    return (p != nullptr) ? p->height : 0;
+Node* minNode(Node* p, stack<Node*>& stack) {
+    while (p->left != nullptr) {
+        stack.push(p);
+        p = p->left;
+    }
+    return p;
+}
+
+Node* maxNode(Node* p, stack<Node*>& stack) {
+    while (p->right != nullptr) {
+        stack.push(p);
+        p = p->right;
+    }
+    return p;
 }
 
 Node* rotateTree(string com, Node* x) {
@@ -138,6 +153,7 @@ int insertAVL(Node*& T, int newKey) {
         int leftHeight = (q->left == nullptr) ? 0 : q->left->height;
         int rightHeight = (q->right == nullptr) ? 0 : q->right->height;
         q->height = 1 + max(leftHeight, rightHeight);
+        q->size = 1 + Size(q->left) + Size(q->right);
         q->bf = leftHeight - rightHeight;
 
         if (q->bf > 1 or q->bf < -1) {
@@ -190,18 +206,10 @@ int deleteAVL(Node*& T, int deleteKey) {
         //minNode(), maxNode()
         if (p->left->height < p->right->height or (p->left->height == p->right->height and Size(p->left) < Size(p->right)))
         {
-            p = p->right;
-            while (p->left != nullptr) {
-                stack.push(p);
-                p = p->left;
-            }
+            p = minNode(p->right, stack);
         }
         else {
-            p = p->left;
-            while (p->right != nullptr) {
-                stack.push(p);
-                p = p->right;
-            }
+            p = maxNode(p->left, stack);
         }
 
         tempNode->key = p->key;
@@ -247,6 +255,7 @@ int deleteAVL(Node*& T, int deleteKey) {
         int rightHeight = (q->right == nullptr) ? 0 : q->right->height;
 
         q->height = 1 + max(leftHeight, rightHeight);
+        q->size = 1 + Size(q->left) + Size(q->right);
         q->bf = leftHeight - rightHeight;
 
         if (q->bf > 1 or q->bf < -1) {
