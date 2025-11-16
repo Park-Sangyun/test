@@ -90,7 +90,7 @@ Node* rotateTree(string com, Node* x) {
 
 Node* checkBalance(Node* x) {
     if (1 < x->bf) {
-        if (x->left->bf > 0) {
+        if (x->left->bf >= 0) {
             return rotateTree("LL", x);
         }
         else {
@@ -98,7 +98,7 @@ Node* checkBalance(Node* x) {
         }
     }
     else {
-        if (x->right->bf < 0) {
+        if (x->right->bf <= 0) {
             return rotateTree("RR", x);
         }
         else {
