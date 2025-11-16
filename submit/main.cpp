@@ -86,6 +86,7 @@ Node* rotateTree(string com, Node* x) {
         x->right = rotateTree("LL", x->right);
         return rotateTree("RR", x);
     }
+    return x;
 }
 
 Node* checkBalance(Node* x) {
