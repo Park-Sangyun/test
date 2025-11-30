@@ -1,342 +1,161 @@
-#include <iostream>
-#include <fstream>
-#include <stack>
-
-
+﻿#include <iostream>
+#include <vector>
+#include <algorithm>
 using namespace std;
 
+// Node 구조체 정의
 struct Node {
-public:
-    Node* left, * right;
-    int key;
-    int height;
-    int size;
-    int bf;
+    vector<int> keys;
+    vector<Node*> children;
+    int order;
+
+    Node(int order) : order(order) {}
 };
 
-Node* getNodeAVL(int newkey) {
-    Node* newNode = new Node();
-    newNode->key = newkey;
-    newNode->left = nullptr;
-    newNode->right = nullptr;
-    newNode->height = 1;
-    newNode->size = 1;
-    newNode->bf = 0;
+// Node 생성 함수
+Node* createNode(int order) {
+    return new Node(order);
+}
+
+// 키 삽입 함수
+Node* insertKey(Node* node, int key, int& median);
+
+// 분할 함수
+Node* splitNode(Node* node, int& median);
+
+// 트리 출력 함수
+void printTree(Node* node, int level = 0, bool isRoot = true);
+
+// 트리 삽입 연산 함수
+void insert(Node*& root, int key, int order) {
+    if (!root) {
+        root = createNode(order);
+        root->keys.push_back(key);
+        return;
+    }
+
+    int median;
+    Node* splitRoot = insertKey(root, key, median);
+
+    if (splitRoot) {
+        Node* newRoot = createNode(order);
+        newRoot->keys.push_back(median);
+        newRoot->children.push_back(root);
+        newRoot->children.push_back(splitRoot);
+        root = newRoot;
+    }
+}
+
+// 키 삽입 함수 정의
+Node* insertKey(Node* node, int key, int& median) {
+    // 리프 노드인 경우
+    if (node->children.empty()) {
+        auto it = lower_bound(node->keys.begin(), node->keys.end(), key);
+        node->keys.insert(it, key);
+
+        if (node->keys.size() > node->order - 1) {
+            return splitNode(node, median);
+        }
+        return nullptr;
+    }
+
+    // 내부 노드인 경우
+    auto it = upper_bound(node->keys.begin(), node->keys.end(), key);
+    int index = it - node->keys.begin();
+
+    Node* splitChild = insertKey(node->children[index], key, median);
+
+    if (splitChild) {
+        node->keys.insert(node->keys.begin() + index, median);
+        node->children.insert(node->children.begin() + index + 1, splitChild);
+
+        if (node->keys.size() > node->order - 1) {
+            return splitNode(node, median);
+        }
+    }
+    return nullptr;
+}
+
+// 분할 함수 정의
+Node* splitNode(Node* node, int& median) {
+    int midIndex = node->keys.size() / 2;
+    median = node->keys[midIndex];
+
+    Node* newNode = createNode(node->order);
+    newNode->keys.assign(node->keys.begin() + midIndex + 1, node->keys.end());
+    node->keys.resize(midIndex);
+
+    if (!node->children.empty()) {
+        newNode->children.assign(node->children.begin() + midIndex + 1, node->children.end());
+        node->children.resize(midIndex + 1);
+    }
+
     return newNode;
 }
 
-// height
-int Height(Node* p) {
-    if (p == nullptr)
-        return 0;
-    return p->height;
-}
+// 트리 출력 함수 정의
+void printTree(Node* node, int level, bool isRoot) {
+    if (!node) return;
 
-// size
-int Size(Node* p) {
-    if (p == nullptr)
-        return 0;
-    return p->size;
-}
+    cout << '<';
 
-// minNode
-Node* minNode(Node* p, stack<Node*>& stack) {
-    while (p->left != nullptr) {
-        stack.push(p);
-        p = p->left;
-    }
-    return p;
-}
-
-// maxNode
-Node* maxNode(Node* p, stack<Node*>& stack) {
-    while (p->right != nullptr) {
-        stack.push(p);
-        p = p->right;
-    }
-    return p;
-}
-
-Node* rotateTree(string com, Node* x) {
-    if (com == "LL") {
-        Node* y = x->left;
-        x->left = y->right;
-        y->right = x;
-
-        x->height = 1 + max(Height(x->left), Height(x->right));
-        x->size = 1 + Size(x->left) + Size(x->right);
-        x->bf = Height(x->left) - Height(x->right);
-
-        y->height = 1 + max(Height(y->left), Height(y->right));
-        y->size = 1 + Size(y->left) + Size(y->right);
-        y->bf = Height(y->left) - Height(y->right);
-        return y;
-    }
-    else if (com == "RR") {
-        Node* y = x->right;
-        x->right = y->left;
-        y->left = x;
-
-        x->height = 1 + max(Height(x->left), Height(x->right));
-        x->size = 1 + Size(x->left) + Size(x->right);
-        x->bf = Height(x->left) - Height(x->right);
-
-        y->height = 1 + max(Height(y->left), Height(y->right));
-        y->size = 1 + Size(y->left) + Size(y->right);
-        y->bf = Height(y->left) - Height(y->right);
-        return y;
-    }
-    else if (com == "LR") {
-        x->left = rotateTree("RR", x->left);
-        return rotateTree("LL", x);
-    }
-    else if (com == "RL") {   // RL
-        x->right = rotateTree("LL", x->right);
-        return rotateTree("RR", x);
-    }
-    return x;
-}
-
-Node* checkBalance(Node* x) {
-    if (1 < x->bf) {
-        if (x->left->bf >= 0) {
-            return rotateTree("LL", x);
+    // 현재 노드의 자식 및 키 출력
+    for (size_t i = 0; i < node->keys.size(); ++i) {
+        if (i < node->children.size()) {
+            cout << node->children[i] << ' ';
         }
-        else {
-            return rotateTree("LR", x);
-        }
+        cout << node->keys[i] << ' ';
     }
-    else {
-        if (x->right->bf <= 0) {
-            return rotateTree("RR", x);
-        }
-        else {
-            return rotateTree("RL", x);
-        }
-    }
-    return x;
-}
 
-int insertAVL(Node*& T, int newKey) {
-    Node* p = T; //루트노드 받아옴
-    Node* q = nullptr; //부모노드 임시저장 
-    stack<Node*> stack; //부모노드 계속 저장
-
-    // searchNode()
-    while (p != nullptr) {
-        // 이미 같은 키의 노드가 존재하는 경우
-        if (newKey == p->key) {
-            cerr << "i " << newKey << ": The key already exists\n";
-            return 0;
-        }
-
-        q = p;
-        stack.push(q);
-
-        if (newKey < p->key) {
-            p = p->left;
-        }
-        else {
-            p = p->right;
-        }
-    }
     
-    // 새로운 노드 생성
-    Node* newNode = getNodeAVL(newKey);
-
-    // 루트노드가 비었을 경우
-    if (T == nullptr)
-        T = newNode;
-
-    else if (newKey < q->key)
-        q->left = newNode;
-    else
-        q->right = newNode;
-    Node* x = nullptr;
-    Node* f = nullptr;
-
-    // 밸런스 체크 및 업데이트
-    while (!stack.empty()) {
-        q = stack.top();
-        stack.pop();
-
-        int leftHeight = (q->left == nullptr) ? 0 : q->left->height;
-        int rightHeight = (q->right == nullptr) ? 0 : q->right->height;
-        q->height = 1 + max(leftHeight, rightHeight);
-        q->size = 1 + Size(q->left) + Size(q->right);
-        q->bf = leftHeight - rightHeight;
-
-        if (q->bf > 1 or q->bf < -1) {
-            x = q;
-            if (!stack.empty()) {
-                f = stack.top();
-            }
-            break;
+    for (Node* child : node->children) {
+            cout << ' ';
+            printTree(child);
         }
+    if (node->children.size() > node->keys.size()) {
+        cout << node->children[node->children.size() - 1];
     }
-    if (x == nullptr) {
-        return 1;
-    }
-    if (f == nullptr) {
-        T = checkBalance(x);
-    }
-    else if (f->left == x) {
-        f->left = checkBalance(x);
-    }
-    else if (f->right == x) {
-        f->right = checkBalance(x);
-    }
+    cout << '>';
 
-    return 1;
+    // 자식 노드들에 대해 재귀적으로 출력
+    
 }
 
-int eraseAVL(Node*& T, int deleteKey) {
-    Node* p = T;
-    Node* q = nullptr;
-    stack<Node*> stack;
+// 메모리 해제 함수
+void Clear(Node* node) {
+    if (!node) return;
 
-    // searchNode
-    while (p != nullptr and deleteKey != p->key) {
-        q = p;
-        stack.push(q);
-
-        if (deleteKey < p->key)
-            p = p->left;
-        else
-            p = p->right;
+    for (Node* child : node->children) {
+        Clear(child);
     }
 
-    // 삭제할 노드가 없는 경우
-    if (p == nullptr) {
-        cerr << "d " << deleteKey << ": The key does not exist\n";
-        return 0;
-    }
-    //타겟노드 양옆 확인
-    if (p->left != nullptr and p->right != nullptr) { // 차수가 2
-        stack.push(p);
-        Node* tempNode = p;
-
-        if (p->left->height < p->right->height or (p->left->height == p->right->height and Size(p->left) < Size(p->right)))
-        {
-            p = minNode(p->right, stack); // p->right 서브트리에서 minNode를 찾기
-        }
-        else {
-            p = maxNode(p->left, stack); // p->left 서브트리에서 maxNode를 찾기
-        }
-
-        tempNode->key = p->key;
-        q = stack.top();
-    }
-
-    if (p->left == nullptr and p->right == nullptr) {  // 차수가 0
-        if (q == nullptr)
-            T = nullptr;
-        else if (q->left == p)
-            q->left = nullptr;
-        else
-            q->right = nullptr;
-    }
-    else { // 차수가 1
-        if (p->left != nullptr) {
-            if (q == nullptr)
-                T = T->left;
-            else if (q->left == p)
-                q->left = p->left;
-            else
-                q->right = p->left;
-        }
-        else {
-            if (q == nullptr)
-                T = T->right;
-            else if (q->left == p)
-                q->left = p->right;
-            else
-                q->right = p->right;
-        }
-    }
-    //메모리 누수 방지
-    delete p;
-
-    // 밸런스 체크 및 업데이트
-    Node* x = nullptr;
-    Node* f = nullptr;
-    while (!stack.empty()) {
-        q = stack.top();
-        stack.pop();
-        int leftHeight = (q->left == nullptr) ? 0 : q->left->height;
-        int rightHeight = (q->right == nullptr) ? 0 : q->right->height;
-
-        q->height = 1 + max(leftHeight, rightHeight);
-        q->size = 1 + Size(q->left) + Size(q->right);
-        q->bf = leftHeight - rightHeight;
-
-        if (q->bf > 1 or q->bf < -1) {
-            x = checkBalance(q);
-            if (!stack.empty()) {
-                f = stack.top();
-            }
-            if (q == T) {
-                T = x;
-            }
-            else if (q == f->left) {
-                f->left = x;
-            }
-            else {
-                f->right = x;
-            }
-        }
-    }
-
-    return 1;
+    delete node;
 }
 
-
-// 순회 출력
-void InOrder(Node* T) {
-    // 빈트리
-    if (T == nullptr) {
-        cout << "";
-        return;
-    }
-    cout << "<";
-    // 왼쪽
-    if (T->left != nullptr)
-        InOrder(T->left);
-    // 현재 노드
-    cout << " " << T->key << " ";
-    // 오른쪽
-    if (T->right != nullptr)
-        InOrder(T->right);
-    cout << ">"; // 끝
-}
-
-void Clear(Node* T) {
-    if (T == nullptr)
-        return;
-    Clear(T->left);
-    Clear(T->right);
-    delete T;
-}
-
-//main 함수
+// 메인 함수
 int main() {
+    Node* Tree = nullptr;
+    int size;
+    int value;
     char com;
-    int key;
-    Node* T = nullptr;
-    while (cin >> com >> key) {
+    cin >> size;
+ 
+    while (cin >> com >> value) {
         if (com == 'i') {
-            if (insertAVL(T, key)) {
-                InOrder(T);
-                cout << "\n";
-            }
+            insert(Tree, value, size);
+            printTree(Tree);
+            cout << "\n";
         }
         else if (com == 'd') {
-            if (eraseAVL(T, key)) {
-                InOrder(T);
-                cout << "\n";
-            }
+            printTree(Tree);
+            return 0;
+        }
+        else {
+            cerr << "err";
         }
     }
-    Clear(T);
+    // 메모리 해제
+    Clear(Tree);
+
     return 0;
 }
